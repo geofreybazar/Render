@@ -3,13 +3,14 @@ import morgan from 'morgan';
 import cors from 'cors';
 
 
-const PORT = 3301;
+const PORT = process.env.PORT || 3001;
 const app = express();
 app.use(cors());
 
 
 app.use(express.json());
 app.use(morgan('tiny'));
+app.use(morgan(":method :url :status :body"));
 // app.use(logger);
 
 
@@ -44,22 +45,38 @@ let notes = [
 //     next();
 // }
 
-function unknownEndPoint(req, res) {
-    return res.status(404).send({ error: "error:Unknown End-Point" });
-}
 
-app.get('/notes/info', (req,res) => {
-    let count = 0;
-    for (const note of notes) {
-        count++;
-      }
-    res.send(`<h1>I have ${count} notes </h1>`)
-});
+function unknownEndpoint(req, res) {
+    return res.status(404).send({ error: "unknown endpoint" });
+  }
 
+  function generateId() {
+    const maxId = notes.length > 0 ? Math.max(...notes.map((n) => n.id)) : 0;
+    return maxId + 1;
+  }
+
+// app.get('/notes/info', (req,res) => {
+//     let count = 0;
+//     for (const note of notes) {
+//         count++;
+//       }
+//     res.send(`<h1>I have ${count} notes </h1>`)
+// });
+
+app.get("/notes/info", (req, res) => {
+    const notesCount = notes.length;
+  
+    return res.send(`<p>Notes App have ${notesCount} notes</p>`);
+  });
 
 app.get('/', (request, response) => {
     response.send('<h1>Hello</h1>')
 });
+
+app.get('/notes', (request, response) => {
+    response.json(notes);
+});
+
 
 app.get('/notes/:id', (request, response) => {
     const id = Number(request.params.id);
@@ -68,9 +85,6 @@ app.get('/notes/:id', (request, response) => {
     response.json(note);
 });
 
-app.get('/notes', (request, response) => {
-    response.json(notes);
-});
 
 app.delete('/notes/:id', (request, response) => {
     const id = Number(request.params.id);
@@ -79,19 +93,37 @@ app.delete('/notes/:id', (request, response) => {
     response.status(204).end();
 });
 
-app.post('/notes', (request, response) => {
-    const maxId = notes.length > 0 ? Math.max(...notes.map(n => n.id)):0;
-    const note = request.body;
-    note.id = maxId + 1;
-
+app.post("/notes", (req, res) => {
+    const body = req.body;
+  
+    if (!body.content) {
+      return res.status(400).json({ error: "content missing" });
+    }
+  
+    const note = {
+      content: body.content,
+      important: body.important || false,
+      id: generateId(),
+    };
+  
     notes = notes.concat(note);
+  
+    return res.status(201).json(note);
+  });
 
-    response.json(note);
+// app.post('/notes', (request, response) => {
+//     const maxId = notes.length > 0 ? Math.max(...notes.map(n => n.id)):0;
+//     const note = request.body;
+//     note.id = maxId + 1;
+
+//     notes = notes.concat(note);
+
+//     response.json(note);
     
-});
+// });
 
-
- app.use(unknownEndPoint)
+app.use(unknownEndpoint);
+//  app.use(unknownEndPoint)
 
 app.listen(PORT, () => {
     console.log(`Server is now running on ${PORT}`);
