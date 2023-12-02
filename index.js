@@ -7,6 +7,10 @@ const PORT = process.env.PORT || 3001;
 const app = express();
 app.use(cors());
 
+morgan.token("body", function (req, res) {
+    return JSON.stringify(req.body);
+  });
+
 
 app.use(express.json());
 app.use(morgan('tiny'));
